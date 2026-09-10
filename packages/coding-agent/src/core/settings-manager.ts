@@ -36,6 +36,7 @@ export interface RetrySettings {
 
 export type TuiMode = RendererTuiMode;
 export type FullscreenExitOutput = "transcript" | "resume-hint";
+export type DiffDisplayStyle = "unified" | "split" | "auto";
 
 export interface TerminalSettings {
 	showImages?: boolean; // default: true (only relevant if terminal supports images)
@@ -140,6 +141,7 @@ export interface Settings {
 	httpIdleTimeoutMs?: number; // HTTP header/body idle timeout in milliseconds; 0 disables it
 	websocketConnectTimeoutMs?: number; // WebSocket connect/open handshake timeout in milliseconds; 0 disables it
 	tuiMode?: TuiMode; // default: "regular"
+	diffDisplayStyle?: DiffDisplayStyle; // default: "auto" (side-by-side above a width threshold, unified below it)
 	fullscreenExitOutput?: FullscreenExitOutput; // default: "transcript"; no effect in regular TUI mode
 	fullscreenScrollbar?: ScrollViewScrollbar; // default: "auto"; no effect in regular TUI mode
 	fullscreenCopyOnSelect?: boolean; // default: true; no effect in regular TUI mode
@@ -1206,6 +1208,17 @@ export class SettingsManager {
 	setTuiMode(mode: TuiMode): void {
 		this.globalSettings.tuiMode = mode;
 		this.markModified("tuiMode");
+		this.save();
+	}
+
+	getDiffDisplayStyle(): DiffDisplayStyle {
+		const style = this.settings.diffDisplayStyle;
+		return style === "unified" || style === "split" ? style : "auto";
+	}
+
+	setDiffDisplayStyle(style: DiffDisplayStyle): void {
+		this.globalSettings.diffDisplayStyle = style;
+		this.markModified("diffDisplayStyle");
 		this.save();
 	}
 
