@@ -451,6 +451,33 @@ describe("SettingsManager", () => {
 		});
 	});
 
+	describe("diff display style", () => {
+		it("defaults to auto and persists unified/split choices", async () => {
+			const manager = SettingsManager.create(projectDir, agentDir);
+
+			expect(manager.getDiffDisplayStyle()).toBe("auto");
+
+			manager.setDiffDisplayStyle("split");
+			await manager.flush();
+
+			expect(manager.getDiffDisplayStyle()).toBe("split");
+			const savedSettings = JSON.parse(readFileSync(join(agentDir, "settings.json"), "utf-8"));
+			expect(savedSettings.diffDisplayStyle).toBe("split");
+
+			manager.setDiffDisplayStyle("unified");
+			await manager.flush();
+			expect(manager.getDiffDisplayStyle()).toBe("unified");
+		});
+
+		it("falls back to auto for unsupported values", () => {
+			writeFileSync(join(agentDir, "settings.json"), JSON.stringify({ diffDisplayStyle: "sideways" }));
+
+			const manager = SettingsManager.create(projectDir, agentDir);
+
+			expect(manager.getDiffDisplayStyle()).toBe("auto");
+		});
+	});
+
 	it("validates and persists fullscreen settings", async () => {
 		const manager = SettingsManager.create(projectDir, agentDir);
 		expect(manager.getFullscreenExitOutput()).toBe("transcript");
