@@ -14,6 +14,7 @@ import {
 import { formatHttpIdleTimeoutMs, HTTP_IDLE_TIMEOUT_CHOICES } from "../../../core/http-dispatcher.ts";
 import type {
 	DefaultProjectTrust,
+	DiffDisplayStyle,
 	FullscreenExitOutput,
 	MermaidRenderingMode,
 	TuiMode,
@@ -82,6 +83,7 @@ export interface SettingsConfig {
 	clearOnShrink: boolean;
 	showTerminalProgress: boolean;
 	tuiMode: TuiMode;
+	diffDisplayStyle: DiffDisplayStyle;
 	fullscreenExitOutput: FullscreenExitOutput;
 	fullscreenScrollbar: ScrollViewScrollbar;
 	fullscreenCopyOnSelect: boolean;
@@ -119,6 +121,7 @@ export interface SettingsCallbacks {
 	onClearOnShrinkChange: (enabled: boolean) => void;
 	onShowTerminalProgressChange: (enabled: boolean) => void;
 	onTuiModeChange: (mode: TuiMode) => void;
+	onDiffDisplayStyleChange: (style: DiffDisplayStyle) => void;
 	onFullscreenExitOutputChange: (output: FullscreenExitOutput) => void;
 	onFullscreenScrollbarChange: (mode: ScrollViewScrollbar) => void;
 	onFullscreenCopyOnSelectChange: (enabled: boolean) => void;
@@ -682,6 +685,13 @@ export class SettingsSelectorComponent extends Container {
 				values: ["regular", "fullscreen"],
 			},
 			{
+				id: "diff-display-style",
+				label: "Diff display style",
+				description: "Unified, side-by-side, or automatic based on terminal width",
+				currentValue: config.diffDisplayStyle,
+				values: ["unified", "split", "auto"],
+			},
+			{
 				id: "fullscreen-exit-output",
 				label: "Fullscreen exit output",
 				description: "Print the transcript or only a session resume hint when exiting fullscreen mode",
@@ -916,6 +926,9 @@ export class SettingsSelectorComponent extends Container {
 						break;
 					case "tui-mode":
 						callbacks.onTuiModeChange(newValue as TuiMode);
+						break;
+					case "diff-display-style":
+						callbacks.onDiffDisplayStyleChange(newValue as DiffDisplayStyle);
 						break;
 					case "fullscreen-exit-output":
 						callbacks.onFullscreenExitOutputChange(newValue as FullscreenExitOutput);
