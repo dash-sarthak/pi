@@ -12,6 +12,7 @@ import {
 	type TuiMouseEvent,
 } from "@earendil-works/pi-tui";
 import type { ToolDefinition, ToolRenderContext, ToolRenderResultOptions } from "../../../core/extensions/types.ts";
+import type { DiffDisplayStyle } from "../../../core/settings-manager.ts";
 import type { Theme } from "../theme/theme.ts";
 
 /**
@@ -42,6 +43,7 @@ const FALLBACK_PREVIEW_LINES = 10;
 export interface ToolExecutionOptions {
 	showImages?: boolean;
 	imageWidthCells?: number;
+	diffDisplayStyle?: DiffDisplayStyle;
 }
 
 export class ToolExecutionComponent extends Container {
@@ -61,6 +63,7 @@ export class ToolExecutionComponent extends Container {
 	private expanded = false;
 	private showImages: boolean;
 	private imageWidthCells: number;
+	private diffDisplayStyle: DiffDisplayStyle;
 	private isPartial = true;
 	private toolDefinition?: ToolRenderers;
 	private ui: TUI;
@@ -91,6 +94,7 @@ export class ToolExecutionComponent extends Container {
 		this.toolDefinition = toolDefinition;
 		this.showImages = options.showImages ?? true;
 		this.imageWidthCells = options.imageWidthCells ?? 60;
+		this.diffDisplayStyle = options.diffDisplayStyle ?? "auto";
 		this.ui = ui;
 		this.cwd = cwd;
 
@@ -145,6 +149,7 @@ export class ToolExecutionComponent extends Container {
 			isPartial: this.isPartial,
 			expanded: this.expanded,
 			showImages: this.showImages,
+			diffDisplayStyle: this.diffDisplayStyle,
 			isError: this.result?.isError ?? false,
 		};
 	}
@@ -238,6 +243,11 @@ export class ToolExecutionComponent extends Container {
 
 	setShowImages(show: boolean): void {
 		this.showImages = show;
+		this.updateDisplay();
+	}
+
+	setDiffDisplayStyle(style: DiffDisplayStyle): void {
+		this.diffDisplayStyle = style;
 		this.updateDisplay();
 	}
 
