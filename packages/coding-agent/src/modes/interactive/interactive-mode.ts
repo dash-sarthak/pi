@@ -3256,6 +3256,7 @@ export class InteractiveMode {
 									{
 										showImages: this.settingsManager.getShowImages(),
 										imageWidthCells: this.settingsManager.getImageWidthCells(),
+										diffDisplayStyle: this.settingsManager.getDiffDisplayStyle(),
 									},
 									this.getRegisteredToolDefinition(content.name),
 									this.ui,
@@ -3331,6 +3332,7 @@ export class InteractiveMode {
 						{
 							showImages: this.settingsManager.getShowImages(),
 							imageWidthCells: this.settingsManager.getImageWidthCells(),
+							diffDisplayStyle: this.settingsManager.getDiffDisplayStyle(),
 						},
 						this.getRegisteredToolDefinition(event.toolName),
 						this.ui,
@@ -3724,6 +3726,7 @@ export class InteractiveMode {
 							{
 								showImages: this.settingsManager.getShowImages(),
 								imageWidthCells: this.settingsManager.getImageWidthCells(),
+								diffDisplayStyle: this.settingsManager.getDiffDisplayStyle(),
 							},
 							this.getRegisteredToolDefinition(content.name),
 							this.ui,
@@ -4594,6 +4597,7 @@ export class InteractiveMode {
 					clearOnShrink: this.settingsManager.getClearOnShrink(),
 					showTerminalProgress: this.settingsManager.getShowTerminalProgress(),
 					tuiMode: this.ui.mode,
+					diffDisplayStyle: this.settingsManager.getDiffDisplayStyle(),
 					fullscreenExitOutput: this.settingsManager.getFullscreenExitOutput(),
 					fullscreenScrollbar: this.settingsManager.getFullscreenScrollbar(),
 					fullscreenCopyOnSelect: this.settingsManager.getFullscreenCopyOnSelect(),
@@ -4617,6 +4621,14 @@ export class InteractiveMode {
 						for (const child of this.chatContainer.children) {
 							if (child instanceof ToolExecutionComponent) {
 								child.setImageWidthCells(width);
+							}
+						}
+					},
+					onDiffDisplayStyleChange: (style) => {
+						this.settingsManager.setDiffDisplayStyle(style);
+						for (const child of this.chatContainer.children) {
+							if (child instanceof ToolExecutionComponent) {
+								child.setDiffDisplayStyle(style);
 							}
 						}
 					},
