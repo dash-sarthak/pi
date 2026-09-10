@@ -63,6 +63,7 @@ import type {
 	SessionEntry,
 	SessionManager,
 } from "../session-manager.ts";
+import type { DiffDisplayStyle } from "../settings-manager.ts";
 import type { SlashCommandInfo } from "../slash-commands.ts";
 import type { SourceInfo } from "../source-info.ts";
 import type { BuildSystemPromptOptions } from "../system-prompt.ts";
@@ -441,6 +442,8 @@ export interface ToolRenderContext<TState = any, TArgs = any> {
 	expanded: boolean;
 	/** Whether inline images are currently shown in the TUI. */
 	showImages: boolean;
+	/** Preferred diff display style ("unified" | "split" | "auto"); width decides for "auto". */
+	diffDisplayStyle: DiffDisplayStyle;
 	/** Whether the current result is an error. */
 	isError: boolean;
 }
