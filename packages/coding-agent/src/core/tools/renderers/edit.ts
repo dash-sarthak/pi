@@ -7,9 +7,10 @@
  */
 
 import { Box, Container, Spacer, Text } from "@earendil-works/pi-tui";
-import { renderDiff } from "../../../modes/interactive/components/diff.ts";
-import type { Theme } from "../../../modes/interactive/theme/theme.ts";
+import { SplitDiffView } from "../../../modes/interactive/components/split-diff.ts";
+import { getLanguageFromPath, type Theme } from "../../../modes/interactive/theme/theme.ts";
 import type { ToolDefinition } from "../../extensions/types.ts";
+import type { DiffDisplayStyle } from "../../settings-manager.ts";
 import type { EditToolDetails } from "../edit.ts";
 import { computeEditsDiff, type Edit, type EditDiffError, type EditDiffResult } from "../edit-diff.ts";
 import { renderToolPath, str } from "../render-utils.ts";
@@ -29,11 +30,13 @@ type EditToolResultLike = {
 	content: Array<{ type: string; text?: string; data?: string; mimeType?: string }>;
 	details?: EditToolDetails;
 };
+type EditResultRenderComponent = Container & { splitView?: SplitDiffView };
 type EditCallRenderComponent = Box & {
 	preview?: EditPreview;
 	previewArgsKey?: string;
 	previewPending?: boolean;
 	settledError?: boolean;
+	splitView?: SplitDiffView;
 };
 function createEditCallRenderComponent(): EditCallRenderComponent {
 	return Object.assign(new Box(1, 1, (text: string) => text), {
@@ -41,6 +44,7 @@ function createEditCallRenderComponent(): EditCallRenderComponent {
 		previewArgsKey: undefined as string | undefined,
 		previewPending: false,
 		settledError: false,
+		splitView: undefined as SplitDiffView | undefined,
 	});
 }
 function getEditCallRenderComponent(state: EditRenderState, lastComponent: unknown): EditCallRenderComponent {
@@ -84,13 +88,15 @@ function formatEditCall(args: RenderableEditArgs | undefined, theme: Theme, cwd:
 	const pathDisplay = renderToolPath(str(args?.file_path ?? args?.path), theme, cwd);
 	return `${theme.fg("toolTitle", theme.bold("edit"))} ${pathDisplay}`;
 }
+type EditResultOutput = { kind: "text"; text: string } | { kind: "diff"; diff: string; lang: string | undefined };
+
 function formatEditResult(
 	args: RenderableEditArgs | undefined,
 	preview: EditPreview | undefined,
 	result: EditToolResultLike,
 	theme: Theme,
 	isError: boolean,
-): string | undefined {
+): EditResultOutput | undefined {
 	const rawPath = str(args?.file_path ?? args?.path);
 	const previewDiff = preview && !("error" in preview) ? preview.diff : undefined;
 	const previewError = preview && "error" in preview ? preview.error : undefined;
@@ -102,12 +108,13 @@ function formatEditResult(
 		if (!errorText || errorText === previewError) {
 			return undefined;
 		}
-		return theme.fg("error", errorText);
+		return { kind: "text", text: theme.fg("error", errorText) };
 	}
 
 	const resultDiff = result.details?.diff;
 	if (resultDiff && resultDiff !== previewDiff) {
-		return renderDiff(resultDiff, { filePath: rawPath ?? undefined });
+		const lang = rawPath ? getLanguageFromPath(rawPath) : undefined;
+		return { kind: "diff", diff: resultDiff, lang };
 	}
 
 	return undefined;
@@ -133,6 +140,7 @@ function buildEditCallComponent(
 	args: RenderableEditArgs | undefined,
 	theme: Theme,
 	cwd: string,
+	diffDisplayStyle: DiffDisplayStyle,
 ): EditCallRenderComponent {
 	component.setBgFn(getEditHeaderBg(component.preview, component.settledError, theme));
 	component.clear();
@@ -142,10 +150,22 @@ function buildEditCallComponent(
 		return component;
 	}
 
-	const body =
-		"error" in component.preview ? theme.fg("error", component.preview.error) : renderDiff(component.preview.diff);
 	component.addChild(new Spacer(1));
-	component.addChild(new Text(body, 0, 0));
+
+	if ("error" in component.preview) {
+		component.addChild(new Text(theme.fg("error", component.preview.error), 0, 0));
+		return component;
+	}
+
+	const rawPath = str(args?.file_path ?? args?.path);
+	const lang = rawPath ? getLanguageFromPath(rawPath) : undefined;
+	if (!component.splitView) {
+		component.splitView = new SplitDiffView(component.preview.diff, { lang, style: diffDisplayStyle, paddingX: 0 });
+	} else {
+		component.splitView.setDiff(component.preview.diff, lang);
+		component.splitView.setStyle(diffDisplayStyle);
+	}
+	component.addChild(component.splitView);
 	return component;
 }
 function setEditPreview(
@@ -192,7 +212,13 @@ export const editRenderers: Pick<ToolDefinition<any, any>, "renderCall" | "rende
 			});
 		}
 
-		return buildEditCallComponent(component, args as RenderableEditArgs | undefined, theme, context.cwd);
+		return buildEditCallComponent(
+			component,
+			args as RenderableEditArgs | undefined,
+			theme,
+			context.cwd,
+			context.diffDisplayStyle,
+		);
 	},
 	renderResult(result, _options, theme, context) {
 		const callComponent = context.state.callComponent;
@@ -215,7 +241,13 @@ export const editRenderers: Pick<ToolDefinition<any, any>, "renderCall" | "rende
 				changed = true;
 			}
 			if (changed) {
-				buildEditCallComponent(callComponent, context.args as RenderableEditArgs | undefined, theme, context.cwd);
+				buildEditCallComponent(
+					callComponent,
+					context.args as RenderableEditArgs | undefined,
+					theme,
+					context.cwd,
+					context.diffDisplayStyle,
+				);
 			}
 		}
 
@@ -226,13 +258,29 @@ export const editRenderers: Pick<ToolDefinition<any, any>, "renderCall" | "rende
 			theme,
 			context.isError,
 		);
-		const component = (context.lastComponent as Container | undefined) ?? new Container();
+		const component =
+			(context.lastComponent as EditResultRenderComponent | undefined) ??
+			Object.assign(new Container(), { splitView: undefined as SplitDiffView | undefined });
 		component.clear();
 		if (!output) {
 			return component;
 		}
 		component.addChild(new Spacer(1));
-		component.addChild(new Text(output, 1, 0));
+		if (output.kind === "text") {
+			component.addChild(new Text(output.text, 1, 0));
+			return component;
+		}
+		if (!component.splitView) {
+			component.splitView = new SplitDiffView(output.diff, {
+				lang: output.lang,
+				style: context.diffDisplayStyle,
+				paddingX: 1,
+			});
+		} else {
+			component.splitView.setDiff(output.diff, output.lang);
+			component.splitView.setStyle(context.diffDisplayStyle);
+		}
+		component.addChild(component.splitView);
 		return component;
 	},
 };
